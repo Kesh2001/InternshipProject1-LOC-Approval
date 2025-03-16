@@ -4,7 +4,7 @@ demo.py
 
 A simple CLI demo:
  - Loads your trained models (classifier, limit regressor, interest regressor).
- - Asks the user for inputs (credit_score, income, etc.) in the console.
+ - Uses predefined test cases instead of user input.
  - Predicts approval status, approved amount, and interest rate.
  - Prints the final decision.
 
@@ -14,93 +14,115 @@ Usage:
 
 import pickle
 import pandas as pd
-import numpy as np
+import os
+from train_model import build_preprocessor  # Import preprocessor for consistency
 
-def main():
-    # 1) Load the trained models (adjust filenames if needed)
-    #    e.g. best_classifier.pkl, best_regression_limit.pkl, best_regression_interest.pkl
-    with open("models/best_classifier.pkl", "rb") as f:
-        model_approval = pickle.load(f)
-    with open("models/best_regression_limit.pkl", "rb") as f:
+# Load trained models
+model_files = {
+    "approval": "models/best_classifier.pkl",
+    "limit": "models/best_regression_limit.pkl",
+    "interest": "models/best_regression_interest.pkl"
+}
+
+# Ensure models exist before loading
+for key, path in model_files.items():
+    if not os.path.exists(path):
+        print(f"Warning: {path} not found. Skipping {key} prediction.")
+
+# Load models if available
+with open(model_files["approval"], "rb") as f:
+    model_approval = pickle.load(f)
+
+model_limit = None
+model_interest = None
+if os.path.exists(model_files["limit"]):
+    with open(model_files["limit"], "rb") as f:
         model_limit = pickle.load(f)
-    with open("models/best_regression_interest.pkl", "rb") as f:
+if os.path.exists(model_files["interest"]):
+    with open(model_files["interest"], "rb") as f:
         model_interest = pickle.load(f)
-    
-    print("=== LOC Auto-Approval Demo ===")
-    print("Enter the following details to see if you're approved.\n")
-    
-    # 2) Prompt user for inputs
-    #    For simplicity, we do minimal input validation here
-    #    Make sure to match the same columns used in training!
-    
-    # Numeric inputs
-    annual_income = float(input("Annual Income (e.g. 65000): "))
-    self_reported_debt = float(input("Self-reported Monthly Debt (e.g. 1500): "))
-    self_reported_expenses = float(input("Self-reported Monthly Expenses (e.g. 2000): "))
-    requested_amount = float(input("Requested Amount (1k - 50k, e.g. 12000): "))
-    age = int(input("Age (19-100): "))
-    months_employed = int(input("Months Employed (0-600): "))
-    credit_score = float(input("Credit Score (300-900): "))
-    credit_utilization = float(input("Credit Utilization (%) (0-100): "))
-    num_open_accounts = int(input("Number of Open Accounts (0-20): "))
-    num_credit_inquiries = int(input("Number of Credit Inquiries (past 12 mo) (0-10): "))
-    
-    # Categorical inputs
-    province = input("Province (ON or BC): ")
-    employment_status = input("Employment Status (Full-time, Part-time, Unemployed): ")
-    payment_history = input("Payment History (On Time, Late <30, Last 30-60, Late>60): ")
-    
-    # 3) We also need 'estimated_debt' and 'DTI' if your model expects them
-    #    If your final model pipeline calculates them, you might skip
-    #    But let's assume we need them as direct inputs for now:
-    #    Usually we do not prompt for these because they're derived fields,
-    #    but I'll show an example anyway:
-    try:
-        estimated_debt = float(input("Estimated Debt (0-10000, if known, else 0): "))
-    except:
-        estimated_debt = 0.0
-    try:
-        DTI = float(input("DTI ratio (0-1 range, e.g. 0.35) or 0 if unknown: "))
-    except:
-        DTI = 0.0
-    
-    # 4) Build a single-row DataFrame in the exact format your model expects
-    #    Make sure the column names match your training pipeline
-    data_dict = {
-        "self_reported_expenses": [self_reported_expenses],
-        "annual_income": [annual_income],
-        "self_reported_debt": [self_reported_debt],
-        "requested_amount": [requested_amount],
-        "age": [age],
-        "months_employed": [months_employed],
-        "credit_score": [credit_score],
-        "credit_utilization": [credit_utilization],
-        "num_open_accounts": [num_open_accounts],
-        "num_credit_inquiries": [num_credit_inquiries],
-        "estimated_debt": [estimated_debt],
-        "DTI": [DTI],
-        "province": [province],
-        "employment_status": [employment_status],
-        "payment_history": [payment_history]
+
+# Load preprocessor for consistent transformation
+preprocessor = build_preprocessor()
+
+
+# Predefined test cases
+test_cases = [
+    {
+        "self_reported_expenses": 2000,
+        "annual_income": 80000,
+        "self_reported_debt": 2100,
+        "requested_amount": 15000,
+        "age": 30,
+        "months_employed": 24,
+        "credit_score": 700,
+        "credit_utilization": 0.40,
+        "num_open_accounts": 3,
+        "num_credit_inquiries": 1,
+        "estimated_debt": 600, 
+        "DTI": 0.35,  
+        "province": "ON",
+        "employment_status": "Full-time",
+        "payment_history": "On Time"
+    },
+    {
+        "self_reported_expenses": 3500,
+        "annual_income": 40000,
+        "self_reported_debt": 5000,
+        "requested_amount": 10000,
+        "age": 45,
+        "months_employed": 6,
+        "credit_score": 650,
+        "credit_utilization": 0.60,
+        "num_open_accounts": 5,
+        "num_credit_inquiries": 3,
+        "estimated_debt": 900,
+        "DTI": 0.50,
+        "province": "BC",
+        "employment_status": "Part-time",
+        "payment_history": "Late <30"
+    },
+    {
+        "self_reported_expenses": 1800,
+        "annual_income": 120000,
+        "self_reported_debt": 1500,
+        "requested_amount": 25000,
+        "age": 35,
+        "months_employed": 36,
+        "credit_score": 750,
+        "credit_utilization": 0.30,
+        "num_open_accounts": 2,
+        "num_credit_inquiries": 0,
+        "estimated_debt": 450,
+        "DTI": 0.28,
+        "province": "ON",
+        "employment_status": "Full-time",
+        "payment_history": "On Time"
     }
-    X_user = pd.DataFrame(data_dict)
+]
+
+# Loop through test cases and make predictions
+for case in test_cases:
+    X_user = pd.DataFrame([case])
+
+    # Apply same preprocessing as training
+    X_user_transformed = preprocessor.transform(X_user)
+
+    # Predict approval
+    approval_pred = model_approval.predict(X_user_transformed)[0]
     
-    # 5) Predict approval
-    approval_pred = model_approval.predict(X_user)[0]  # 0 or 1
+    print(f"\n=== Decision for Test Case (Credit Score: {case['credit_score']}, Income: ${case['annual_income']:,}) ===")
     
     if approval_pred == 0:
-        print("\n=== Decision ===")
         print("**Denied**. Sorry, you do not meet our criteria.")
     else:
-        # If approved, predict limit + interest
-        limit_pred = model_limit.predict(X_user)[0]
-        interest_pred = model_interest.predict(X_user)[0]
+        print("**Approved**", end="")
         
-        # Round or format as you wish
-        print("\n=== Decision ===")
-        print(f"**Approved** for ${limit_pred:,.2f} at {interest_pred:.2f}% interest.")
-    
-    print("\nThank you for trying the LOC Auto-Approval Demo!")
+        if model_limit and model_interest:
+            limit_pred = model_limit.predict(X_user_transformed)[0]
+            interest_pred = model_interest.predict(X_user_transformed)[0]
+            print(f" for ${limit_pred:,.2f} at {interest_pred:.2f}% interest.")
+        else:
+            print(" (Credit limit & interest prediction unavailable).")
 
-if __name__ == "__main__":
-    main()
+print("\n=== Demo Completed ===")
