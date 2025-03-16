@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+
 """
 validate_model.py
 
@@ -22,6 +23,7 @@ Usage:
   1) Run 'dataset.py' and 'train_model.py' first to generate data and models
   2) In Kaggle, copy this entire code cell and run
   3) Inspect or screenshot the displayed plots for over/underfitting analysis
+
 """
 
 import os
@@ -78,7 +80,7 @@ def plot_learning_curve(estimator, X, y, task_name="Classification", scoring=Non
         estimator, X, y,
         cv=5,                \
         scoring=scoring,       
-        train_sizes=np.linspace(0.1, 1.0, 5),  
+        train_sizes=np.linspace(0.1, 1.0, 5),
         shuffle=True,
         random_state=42,
         n_jobs=-1
