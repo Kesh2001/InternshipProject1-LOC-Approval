@@ -150,4 +150,4 @@ plot_learning_curve(
     scoring="neg_mean_absolute_error"
 )
 
-print("\nLearning curve plots displayed above. If you are in Kaggle, scroll up to see them.\n")
+print("\nLearning curve plots displayed.\n")
